@@ -1,23 +1,40 @@
-/**
- * Welcome to Cloudflare Workers! This is your first worker.
- *
- * - Run `npm run dev` in your terminal to start a development server
- * - Open a browser tab at http://localhost:8787/ to see your worker in action
- * - Run `npm run deploy` to publish your worker
- *
- * Bind resources to your worker in `wrangler.jsonc`. After adding bindings, a type definition for the
- * `Env` object can be regenerated with `npm run cf-typegen`.
- *
- * Learn more at https://developers.cloudflare.com/workers/
- */
+import * as PostalMime from "postal-mime";
 
 export default {
-	async email(message, env, ctx) {
-		const allowList = ['friend@example.com', 'coworker@example.com'];
-		if (allowList.indexOf(message.headers.get('from')) == -1) {
-			message.setReject('Address not allowed');
-		} else {
-			await message.forward('inbox@corp');
-		}
-	},
+  async email(message, env, ctx) {
+    const from = message.from;
+
+    console.log("from:", from);
+
+    // Check if from is not null and matches the pattern: numeric@domain
+    if (from) {
+      const emailPattern = /^(\d+)@\w.+$/;
+      const match = from.match(emailPattern);
+
+      if (match) {
+        // Extract the numeric part (e.g., "821000000000")
+        const key = match[1];
+
+        const parser = new PostalMime.default();
+        const rawEmail = new Response(message.raw);
+        const email = await parser.parse(await rawEmail.arrayBuffer());
+
+        console.log("email text:", email.text);
+
+        if (email.text) {
+          // Save to KV with 60 second TTL
+          await env.sms_verifier.put(key, email.text, {
+            expirationTtl: 60,
+          });
+
+          // Accept the email
+          console.log(
+            `Saved email from ${from} to KV with key: ${key} value: ${email.text}`,
+          );
+        }
+
+        return;
+      }
+    }
+  },
 } satisfies ExportedHandler<Env>;

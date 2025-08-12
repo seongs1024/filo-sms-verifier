@@ -31,14 +31,24 @@ export default {
             // Clean the string - remove any non-base64 characters except padding
             // This handles cases where there might be extra spaces, invisible characters, etc.
             firstLine = firstLine.replace(/[^A-Za-z0-9+/=]/g, "");
-            console.log("Cleaned first line:", firstLine);
 
             const decodedText = decodeFrom256(firstLine);
 
+            console.log("Decoded text:", decodedText);
+
+            const jsonMessage = {
+              ...JSON.parse(decodedText),
+              phoneNumber: key,
+            };
+
             // Save decoded text to KV with 60 second TTL
-            await env.sms_verifier.put(firstLine, `${key};${decodedText}`, {
-              expirationTtl: 60,
-            });
+            await env.sms_verifier.put(
+              jsonMessage.id,
+              JSON.stringify(jsonMessage),
+              {
+                expirationTtl: 60,
+              },
+            );
 
             // Accept the email
             console.log(

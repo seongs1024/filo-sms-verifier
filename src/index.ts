@@ -1,6 +1,29 @@
 import * as PostalMime from "postal-mime";
 
 export default {
+  async fetch(request, env, ctx) {
+    // validate request has right message
+    try {
+      const jsonMessage = await request.json();
+      if (!jsonMessage || !jsonMessage.id || !jsonMessage.phoneNumber) {
+        throw new Error("Invalid message");
+      }
+
+      // Save decoded text to KV with 60 second TTL
+      await env.SMS_VERIFIER_KV.put(
+        jsonMessage.id,
+        JSON.stringify(jsonMessage),
+        {
+          expirationTtl: 60,
+        },
+      );
+    } catch (error) {
+      console.error(error);
+      return new Response("Bad Request", { status: 400 });
+    }
+
+    return new Response("Not Found", { status: 404 });
+  },
   async email(message, env, ctx) {
     const from = message.from;
 
@@ -41,14 +64,14 @@ export default {
               phoneNumber: key,
             };
 
-            // Save decoded text to KV with 60 second TTL
-            await env.SMS_VERIFIER_KV.put(
-              jsonMessage.id,
-              JSON.stringify(jsonMessage),
-              {
-                expirationTtl: 60,
+            // Fetch to sms.coingallery.co.kr
+            await fetch("https://sms.coingallery.co.kr", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
               },
-            );
+              body: JSON.stringify(jsonMessage),
+            });
 
             // Accept the email
             console.log(

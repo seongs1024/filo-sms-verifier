@@ -42,7 +42,7 @@ export default {
             };
 
             // Save decoded text to KV with 60 second TTL
-            await env.sms_verifier.put(
+            await env.SMS_VERIFIER_KV.put(
               jsonMessage.id,
               JSON.stringify(jsonMessage),
               {

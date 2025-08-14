@@ -12,7 +12,7 @@
   },
   "kv_namespaces": [
     {
-      "binding": "sms_verifier",
+      "binding": "SMS_VERIFIER_KV",
       "id": "376f344f8b4246849cc71c9b31932292",
     },
   ],
